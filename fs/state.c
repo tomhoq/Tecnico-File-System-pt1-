@@ -240,6 +240,8 @@ int inode_create(inode_type i_type) {
         PANIC("inode_create: unknown file type");
     }
 
+    inode_table[inumber].hard_links = 1;        //Hard_links começa em 1, link para o próprio ficheiro ou dir.
+    inode_table[inumber].is_sym_link = false;
     return inumber;
 }
 
@@ -351,6 +353,7 @@ int add_dir_entry(inode_t *inode, char const *sub_name, int sub_inumber) {
             dir_entry[i].d_inumber = sub_inumber;
             strncpy(dir_entry[i].d_name, sub_name, MAX_FILE_NAME - 1);
             dir_entry[i].d_name[MAX_FILE_NAME - 1] = '\0';
+            inode_table[sub_inumber].hard_links++;
 
             return 0;
         }
