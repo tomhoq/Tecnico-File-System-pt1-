@@ -172,7 +172,6 @@ static int inode_alloc(void) {
         }
     }
 
-    printf("NIKE\n");
     // no free inodes
     return -1;
 }
@@ -197,7 +196,6 @@ static int inode_alloc(void) {
 int inode_create(inode_type i_type) {
     int inumber = inode_alloc(); // returns the first free i node number
     if (inumber == -1) { 
-        printf("YOOO\n"); 
         return -1; // no free slots in inode table
     }
 
@@ -264,7 +262,6 @@ void inode_delete(int inumber) {
 
     if (inode_table[inumber].i_size > 0) {
         data_block_free(inode_table[inumber].i_data_block);
-        printf("Entrou no inode delete\n");
     }
 
     freeinode_ts[inumber] = FREE;
@@ -310,7 +307,7 @@ int clear_dir_entry(inode_t *inode, char const *sub_name) {
                   "clear_dir_entry: directory must have a data block");
 
     for (size_t i = 0; i < MAX_DIR_ENTRIES; i++) {
-        if (strcmp(dir_entry[i].d_name, sub_name)) {
+        if (!strcmp(dir_entry[i].d_name, sub_name)) {
             dir_entry[i].d_inumber = -1;
             memset(dir_entry[i].d_name, 0, MAX_FILE_NAME);
             return 0;
@@ -392,13 +389,14 @@ int find_in_dir(inode_t const *inode, char const *sub_name) {
 
     // Iterates over the directory entries looking for one that has the target
     // name
-    for (int i = 0; i < MAX_DIR_ENTRIES; i++)
+    for (int i = 0; i < MAX_DIR_ENTRIES; i++){
         if ((dir_entry[i].d_inumber != -1) &&
             (strncmp(dir_entry[i].d_name, sub_name, MAX_FILE_NAME) == 0)) {
 
             int sub_inumber = dir_entry[i].d_inumber;
             return sub_inumber;
         }
+    }
 
     return -1; // entry not found
 }
@@ -412,14 +410,12 @@ int find_in_dir(inode_t const *inode, char const *sub_name) {
  *   - No free data blocks.
  */
 int data_block_alloc(void) {
-    printf("DATABLOCKS:%ld\n", DATA_BLOCKS);
     for (size_t i = 0; i < DATA_BLOCKS; i++) {
         if (i * sizeof(allocation_state_t) % BLOCK_SIZE == 0) {
             insert_delay(); // simulate storage access delay to free_blocks
         }
 
         if (free_blocks[i] == FREE) {
-        printf("I:%ld\n", i+1);
             free_blocks[i] = TAKEN;
             return (int)i;
         }
@@ -434,7 +430,6 @@ int data_block_alloc(void) {
  *   - block_number: the block number/index
  */
 void data_block_free(int block_number) {
-    printf("AQUI!\n");
     ALWAYS_ASSERT(valid_block_number(block_number),
                   "data_block_free: invalid block number");
 
