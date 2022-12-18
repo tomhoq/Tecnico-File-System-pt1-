@@ -20,6 +20,7 @@ void _format_path(char *dest, size_t max_size, size_t rep, size_t file_idx) {
 int _open(size_t rep, size_t file_idx, tfs_file_mode_t mode) {
     char path[MAX_PATH_SIZE];
     _format_path(path, MAX_PATH_SIZE, rep, file_idx);
+    printf("PATH e MODE:%s e %d\n", path, mode);
     return tfs_open(path, mode);
 }
 
@@ -126,7 +127,7 @@ int main() {
                 assert(_link(rep, i - 1, rep, i) != -1);
             }
         }
-
+        printf("REPREP:%ld\n", rep);
         run_test(rep);
     }
 

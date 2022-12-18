@@ -79,12 +79,13 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
         printf("1!\n");
         return -1;
     }
-    printf("\nname to open:%s\n", name);
+    printf("NOME:%s\n", name);
 
     inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
     ALWAYS_ASSERT(root_dir_inode != NULL,
                   "tfs_open: root dir inode must exist");
     int inum = tfs_lookup(name, root_dir_inode);
+    printf("name e INUM:%s e %d\n", name, inum);
     size_t offset;
     if (inum >= 0) {
         // The file already exists
@@ -94,12 +95,10 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
             if ((inum = tfs_lookup(new, root_dir_inode)) > 0)
                 inode = inode_get(inum);
             else {
-                printf("2!\n");
                 return -1;
             }
+            printf("new e INUM:%s e %d\n", new, inum);
         }
-        printf(":hardlinks:%d\n", inode->hard_links);
-        printf("?is sym link:%d\n", inode->is_sym_link);
         ALWAYS_ASSERT(inode != NULL,
                       "tfs_open: directory files must have an inode");
 
@@ -116,6 +115,7 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
         } else {
             offset = 0;
         }
+        printf("OFSSET:%ld\n", offset);
     } else if (mode & TFS_O_CREAT) {
         // The file does not exist; the mode specified that it should be created
         // Create inode
@@ -140,6 +140,7 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
 
     // Finally, add entry to the open file table and return the corresponding
     // handle
+    printf("INUM e OFFSET:%d e %ld\n", inum, offset);
     return add_to_open_file_table(inum, offset);
 
     // Note: for simplification, if file was created with TFS_O_CREAT and there
@@ -179,10 +180,9 @@ int tfs_link(char const *target, char const *link_name) {
     }
 
     if (target_inumber != -1 && (add_dir_entry(root_dir_inode, ++link_name, target_inumber) == 0)) {
+        inode_get(target_inumber)->hard_links++;
         return 0;
     }
-
-    inode_get(target_inumber)->hard_links++;
 
     return -1;
 }
@@ -275,39 +275,29 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
 int tfs_unlink(char const *target) {
 
     inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
-    int inumber = tfs_lookup(target, root_dir_inode);
+    int inumber = find_in_dir(root_dir_inode, ++target);
     inode_t *t_inode = inode_get(inumber);
-    //int f = tfs_open(target, 0);
+    
 
-    if (t_inode->i_node_type) {
-        return -1;       //não se dá unlink a diretorias
-    }
-
-    if (t_inode->hard_links == 0) {
-        //tfs_close(f);
-        clear_dir_entry(root_dir_inode, ++target);
-        //inode_delete(inumber);
-        return 0;
-    }
-
-    printf("\ntarget:%s\n", target);
+    /*printf("\ntarget:%s\n", target);
     printf("target hardlinks:%d\n", t_inode->hard_links);
-    printf("is sym link:%d\n", t_inode->is_sym_link);
+    printf("is sym link:%d\n", t_inode->is_sym_link);*/
     
-    
+    t_inode->hard_links--;
     if (t_inode->is_sym_link) {
-        inode_t* origin_inode = inode_get(tfs_lookup((char*) data_block_get(t_inode->i_data_block), root_dir_inode));
-        printf("este é o origin inode:%s\n", (char*) data_block_get(t_inode->i_data_block));
-        origin_inode->hard_links--;
-        clear_dir_entry(root_dir_inode, ++target);
+        //inode_t* origin_inode = inode_get(tfs_lookup((char*) data_block_get(t_inode->i_data_block), root_dir_inode));
         
+        if (clear_dir_entry(root_dir_inode, ++target) == -1) {
+            return -1;
+        }
+        inode_delete(inumber);
         return 0;
     } else {
-        t_inode->hard_links--;
-        //tfs_close(f);
         clear_dir_entry(root_dir_inode, ++target);
-        if (!t_inode->hard_links) 
+        
+        if (t_inode->hard_links == 0) {
             inode_delete(inumber);
+        }
         return 0;
     }
     

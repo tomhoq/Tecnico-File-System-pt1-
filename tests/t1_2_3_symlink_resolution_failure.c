@@ -14,27 +14,20 @@ int main() {
 
     int fd = tfs_open(file_path, TFS_O_CREAT);
     assert(fd != -1);
-
     // Immediately close file
     assert(tfs_close(fd) != -1);
-
     // Create symbolic link
     assert(tfs_sym_link(file_path, link_path) == 0);
-
     // Remove original file
     assert(tfs_unlink(file_path) != -1);
-
     // Link unusable - target no longer exists
     assert(tfs_open(link_path, TFS_O_APPEND) == -1);
-
     // Create new file with same filename
     fd = tfs_open(file_path, TFS_O_CREAT);
     assert(fd != -1);
-
     assert(tfs_close(fd) != -1);
-
     // Link usable again - target was recreated
     assert(tfs_open(link_path, TFS_O_APPEND) != -1);
-
+    
     printf("Successful test.\n");
 }

@@ -70,6 +70,7 @@ int main() {
     {
         int f3 = tfs_open(target_path3, TFS_O_CREAT);
         assert(f3 != -1);
+        printf("YEYEYEYE\n");
         assert(tfs_write(f3, file_contents, sizeof(file_contents)) ==
                -1); // not possible, as the maximum number of data blocks was
                     // reached

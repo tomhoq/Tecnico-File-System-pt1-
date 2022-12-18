@@ -264,6 +264,7 @@ void inode_delete(int inumber) {
 
     if (inode_table[inumber].i_size > 0) {
         data_block_free(inode_table[inumber].i_data_block);
+        printf("Entrou no inode delete\n");
     }
 
     freeinode_ts[inumber] = FREE;
@@ -309,7 +310,7 @@ int clear_dir_entry(inode_t *inode, char const *sub_name) {
                   "clear_dir_entry: directory must have a data block");
 
     for (size_t i = 0; i < MAX_DIR_ENTRIES; i++) {
-        if (!strcmp(dir_entry[i].d_name, sub_name)) {
+        if (strcmp(dir_entry[i].d_name, sub_name)) {
             dir_entry[i].d_inumber = -1;
             memset(dir_entry[i].d_name, 0, MAX_FILE_NAME);
             return 0;
@@ -411,14 +412,15 @@ int find_in_dir(inode_t const *inode, char const *sub_name) {
  *   - No free data blocks.
  */
 int data_block_alloc(void) {
+    printf("DATABLOCKS:%ld\n", DATA_BLOCKS);
     for (size_t i = 0; i < DATA_BLOCKS; i++) {
         if (i * sizeof(allocation_state_t) % BLOCK_SIZE == 0) {
             insert_delay(); // simulate storage access delay to free_blocks
         }
 
         if (free_blocks[i] == FREE) {
+        printf("I:%ld\n", i+1);
             free_blocks[i] = TAKEN;
-
             return (int)i;
         }
     }
@@ -432,6 +434,7 @@ int data_block_alloc(void) {
  *   - block_number: the block number/index
  */
 void data_block_free(int block_number) {
+    printf("AQUI!\n");
     ALWAYS_ASSERT(valid_block_number(block_number),
                   "data_block_free: invalid block number");
 
@@ -475,7 +478,6 @@ int add_to_open_file_table(int inumber, size_t offset) {
             open_file_table[i].of_inumber = inumber;
             open_file_table[i].of_offset = offset;
 
-            printf("Preenchido o espaço (%d) da open-file-table\n", i);
             return i;
         }
     }
@@ -490,7 +492,6 @@ int add_to_open_file_table(int inumber, size_t offset) {
  *   - fhandle: file handle to free/close
  */
 void remove_from_open_file_table(int fhandle) {
-    printf("libertado o espaço (%d) da open-file-table\n", fhandle);
     ALWAYS_ASSERT(valid_file_handle(fhandle),
                   "remove_from_open_file_table: file handle must be valid");
 
