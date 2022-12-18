@@ -76,26 +76,30 @@ static int tfs_lookup(char const *name, inode_t const *root_inode) {
 int tfs_open(char const *name, tfs_file_mode_t mode) {
     // Checks if the path name is valid
     if (!valid_pathname(name)) {
+        printf("1!\n");
         return -1;
     }
+    printf("\nname to open:%s\n", name);
 
     inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
     ALWAYS_ASSERT(root_dir_inode != NULL,
                   "tfs_open: root dir inode must exist");
     int inum = tfs_lookup(name, root_dir_inode);
     size_t offset;
-
     if (inum >= 0) {
         // The file already exists
         inode_t *inode = inode_get(inum);
-
         while (inode->is_sym_link == true) {
             char* new = (char*) data_block_get(inode->i_data_block);
-            //strcpy(datablock_name, data_block_get(inode->i_data_block), );
-            inum = tfs_lookup(new, root_dir_inode);
-            inode = inode_get(inum);
+            if ((inum = tfs_lookup(new, root_dir_inode)) > 0)
+                inode = inode_get(inum);
+            else {
+                printf("2!\n");
+                return -1;
+            }
         }
-
+        printf(":hardlinks:%d\n", inode->hard_links);
+        printf("?is sym link:%d\n", inode->is_sym_link);
         ALWAYS_ASSERT(inode != NULL,
                       "tfs_open: directory files must have an inode");
 
@@ -117,17 +121,20 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
         // Create inode
         inum = inode_create(T_FILE);
         if (inum == -1) {
+            printf("3!\n");
             return -1; // no space in inode table
         }
 
         // Add entry in the root directory
         if (add_dir_entry(root_dir_inode, name + 1, inum) == -1) {
             inode_delete(inum);
+            printf("4!\n");
             return -1; // no space in directory
         }
 
         offset = 0;
     } else {
+        printf("5!\n");
         return -1;
     }
 
@@ -149,15 +156,15 @@ int tfs_sym_link(char const *target, char const *link_name) {
     if (add_dir_entry(root_dir_inode, ++link_name, sym_inumber) != 0) {
         return -1;
     }
-
     inode_t *sym_inode = inode_get(sym_inumber);
+    sym_inode->is_sym_link = true;
+
     sym_inode->i_data_block = data_block_alloc();
     char *sym_data_block = data_block_get(sym_inode->i_data_block);
 
     memcpy(sym_data_block, target, strlen(target)+1);   //Copiar o path de target para o bloco de dados do symlink
 
     sym_inode->i_size = state_block_size(); //Atribuir tamanho ao symlink, TALVEZ NÃO SEJA ESTE O TAMANHO
-    sym_inode->is_sym_link = true;
 
     //Quando se apaga o source_file, o soft_link vai ser quebrado, incorrendo em erros.
     return 0;
@@ -167,11 +174,15 @@ int tfs_link(char const *target, char const *link_name) {
     inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
 
     int target_inumber = tfs_lookup(target, root_dir_inode);
-
-    if (target_inumber != -1) {
-        if (add_dir_entry(root_dir_inode, ++link_name, target_inumber) == 0)
-            return 0;
+    if (tfs_lookup(link_name, root_dir_inode) != -1 || inode_get(target_inumber)->is_sym_link == true) { 
+        return -1;  //Já existe um link com este nome / não é possível criar hard_links para sym_links
     }
+
+    if (target_inumber != -1 && (add_dir_entry(root_dir_inode, ++link_name, target_inumber) == 0)) {
+        return 0;
+    }
+
+    inode_get(target_inumber)->hard_links++;
 
     return -1;
 }
@@ -190,6 +201,7 @@ int tfs_close(int fhandle) {
 ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
     open_file_entry_t *file = get_open_file_entry(fhandle);
     if (file == NULL) {
+        printf("W1!\n");
         return -1;
     }
 
@@ -208,6 +220,7 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
             // If empty file, allocate new block
             int bnum = data_block_alloc();
             if (bnum == -1) {
+                printf("W2!\n");
                 return -1; // no space
             }
 
@@ -226,7 +239,7 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
             inode->i_size = file->of_offset;
         }
     }
-
+    printf("W3!\n");
     return (ssize_t)to_write;
 }
 
@@ -262,19 +275,43 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
 int tfs_unlink(char const *target) {
 
     inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
-    //int inumber = tfs_lookup(target, root_dir_inode);
+    int inumber = tfs_lookup(target, root_dir_inode);
+    inode_t *t_inode = inode_get(inumber);
+    //int f = tfs_open(target, 0);
 
-    //remove from open file entry
-    int f = tfs_open(target, 0);
-    remove_from_open_file_table(f);
+    if (t_inode->i_node_type) {
+        return -1;       //não se dá unlink a diretorias
+    }
 
-    //clear dir entry
-    clear_dir_entry(root_dir_inode, ++target);
+    if (t_inode->hard_links == 0) {
+        //tfs_close(f);
+        clear_dir_entry(root_dir_inode, ++target);
+        //inode_delete(inumber);
+        return 0;
+    }
 
-    //inode delete
-    //inode_delete(inumber);
-
-    return 0;
+    printf("\ntarget:%s\n", target);
+    printf("target hardlinks:%d\n", t_inode->hard_links);
+    printf("is sym link:%d\n", t_inode->is_sym_link);
+    
+    
+    if (t_inode->is_sym_link) {
+        inode_t* origin_inode = inode_get(tfs_lookup((char*) data_block_get(t_inode->i_data_block), root_dir_inode));
+        printf("este é o origin inode:%s\n", (char*) data_block_get(t_inode->i_data_block));
+        origin_inode->hard_links--;
+        clear_dir_entry(root_dir_inode, ++target);
+        
+        return 0;
+    } else {
+        t_inode->hard_links--;
+        //tfs_close(f);
+        clear_dir_entry(root_dir_inode, ++target);
+        if (!t_inode->hard_links) 
+            inode_delete(inumber);
+        return 0;
+    }
+    
+    return -1;
 }
 
 int tfs_copy_from_external_fs(char const *source_path, char const *dest_path) {
@@ -290,7 +327,7 @@ int tfs_copy_from_external_fs(char const *source_path, char const *dest_path) {
     memset(buffer, 0, sizeof(buffer));  
     size_t bRead = fread(buffer, sizeof(*buffer), sizeof(buffer), fp);
     ssize_t bWritten;
-    
+
     while(bRead > 0){
         bWritten = tfs_write(fileHandle, buffer, strlen(buffer));
         if(bWritten == -1)

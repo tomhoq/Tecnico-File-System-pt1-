@@ -168,11 +168,11 @@ static int inode_alloc(void) {
         if (freeinode_ts[inumber] == FREE) {
             //  Found a free entry, so takes it for the new inode
             freeinode_ts[inumber] = TAKEN;
-
             return (int)inumber;
         }
     }
 
+    printf("NIKE\n");
     // no free inodes
     return -1;
 }
@@ -196,7 +196,8 @@ static int inode_alloc(void) {
  */
 int inode_create(inode_type i_type) {
     int inumber = inode_alloc(); // returns the first free i node number
-    if (inumber == -1) {  
+    if (inumber == -1) { 
+        printf("YOOO\n"); 
         return -1; // no free slots in inode table
     }
 
@@ -353,7 +354,6 @@ int add_dir_entry(inode_t *inode, char const *sub_name, int sub_inumber) {
             dir_entry[i].d_inumber = sub_inumber;
             strncpy(dir_entry[i].d_name, sub_name, MAX_FILE_NAME - 1);
             dir_entry[i].d_name[MAX_FILE_NAME - 1] = '\0';
-            inode_table[sub_inumber].hard_links++;
 
             return 0;
         }
@@ -475,6 +475,7 @@ int add_to_open_file_table(int inumber, size_t offset) {
             open_file_table[i].of_inumber = inumber;
             open_file_table[i].of_offset = offset;
 
+            printf("Preenchido o espaço (%d) da open-file-table\n", i);
             return i;
         }
     }
@@ -489,6 +490,7 @@ int add_to_open_file_table(int inumber, size_t offset) {
  *   - fhandle: file handle to free/close
  */
 void remove_from_open_file_table(int fhandle) {
+    printf("libertado o espaço (%d) da open-file-table\n", fhandle);
     ALWAYS_ASSERT(valid_file_handle(fhandle),
                   "remove_from_open_file_table: file handle must be valid");
 
