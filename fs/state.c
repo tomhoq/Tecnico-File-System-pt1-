@@ -14,6 +14,7 @@
  */
 static tfs_params fs_params;
 
+//TABLES--------------------------------------------------------
 // Inode table
 static inode_t *inode_table;
 static allocation_state_t *freeinode_ts;
@@ -22,6 +23,8 @@ static allocation_state_t *freeinode_ts;
 static char *fs_data; // # blocks * block size
 static allocation_state_t *free_blocks;
 
+// Inode's lock table
+static pthread_rwlock_t *iLock;
 /*
  * Volatile FS state
  */
@@ -105,6 +108,7 @@ int state_init(tfs_params params) {
     free_blocks = malloc(DATA_BLOCKS * sizeof(allocation_state_t));
     open_file_table = malloc(MAX_OPEN_FILES * sizeof(open_file_entry_t));
     free_open_file_entries = malloc(MAX_OPEN_FILES * sizeof(allocation_state_t));
+    iLock = malloc(INODE_TABLE_SIZE * sizeof(pthread_rwlock_t));
 
     if (!inode_table || !freeinode_ts || !fs_data || !free_blocks || 
         !open_file_table || !free_open_file_entries) {   //safety if's
@@ -138,6 +142,7 @@ int state_destroy(void) {
     free(free_blocks);
     free(open_file_table);
     free(free_open_file_entries);
+    free(iLock);
 
     inode_table = NULL;
     freeinode_ts = NULL;
@@ -145,6 +150,7 @@ int state_destroy(void) {
     free_blocks = NULL;
     open_file_table = NULL;
     free_open_file_entries = NULL;
+    iLock = NULL;
 
     return 0;
 }

@@ -5,8 +5,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "betterassert.h"
+
+static pthread_mutex_t mutex_open_files;
 
 tfs_params tfs_default_params() {
     tfs_params params = {
@@ -20,6 +23,7 @@ tfs_params tfs_default_params() {
  // initializes tfs
 int tfs_init(tfs_params const *params_ptr) {
     tfs_params params;
+    pthread_mutex_init(&mutex_open_files, NULL);
     if (params_ptr != NULL) {   
         params = *params_ptr;
     } else {
@@ -40,6 +44,7 @@ int tfs_init(tfs_params const *params_ptr) {
 }
 
 int tfs_destroy() {
+    pthread_mutex_destroy(&mutex_open_files);
     if (state_destroy() != 0) {
         return -1;
     }
