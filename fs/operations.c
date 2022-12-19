@@ -31,7 +31,7 @@ int tfs_init(tfs_params const *params_ptr) {
     }
 
     // create root inode
-    int root = inode_create(T_DIRECTORY);
+    int root = inode_create(T_DIRECTORY,false);
     if (root != ROOT_DIR_INUM) {
         return -1;
     }
@@ -114,7 +114,7 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
     } else if (mode & TFS_O_CREAT) {
         // The file does not exist; the mode specified that it should be created
         // Create inode
-        inum = inode_create(T_FILE);
+        inum = inode_create(T_FILE, false);
         if (inum == -1) {
             return -1; // no space in inode table
         }
@@ -142,14 +142,13 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
 int tfs_sym_link(char const *target, char const *link_name) {
     inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
 
-    int sym_inumber = inode_create(T_FILE); //Criar inode do sym_link
+    int sym_inumber = inode_create(T_FILE, true); //Criar inode do sym_link
 
     //Adicionar uma entrada no diretório onde está target_file com o nome target_file que é um soft_link
     if (add_dir_entry(root_dir_inode, ++link_name, sym_inumber) != 0) {
         return -1;
     }
     inode_t *sym_inode = inode_get(sym_inumber);
-    sym_inode->is_sym_link = true;
 
     sym_inode->i_data_block = data_block_alloc();
     char *sym_data_block = data_block_get(sym_inode->i_data_block);
@@ -171,6 +170,7 @@ int tfs_link(char const *target, char const *link_name) {
     }
 
     if (target_inumber != -1 && (add_dir_entry(root_dir_inode, ++link_name, target_inumber) == 0)) {
+        //write lock
         inode_get(target_inumber)->hard_links++;
         return 0;
     }

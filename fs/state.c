@@ -193,7 +193,8 @@ static int inode_alloc(void) {
  *   - No free slots in inode table.
  *   - (if creating a directory) No free data blocks.
  */
-int inode_create(inode_type i_type) {
+//TUDO CRITICO
+int inode_create(inode_type i_type, bool is_sym) {
     int inumber = inode_alloc(); // returns the first free i node number
     if (inumber == -1) { 
         return -1; // no free slots in inode table
@@ -238,9 +239,8 @@ int inode_create(inode_type i_type) {
     default:
         PANIC("inode_create: unknown file type");
     }
-
     inode_table[inumber].hard_links = 1;        //Hard_links começa em 1, link para o próprio ficheiro ou dir.
-    inode_table[inumber].is_sym_link = false;
+    inode_table[inumber].is_sym_link = is_sym;
     return inumber;
 }
 
@@ -257,6 +257,7 @@ void inode_delete(int inumber) {
 
     ALWAYS_ASSERT(valid_inumber(inumber), "inode_delete: invalid inumber");
 
+    //Seccao critica
     ALWAYS_ASSERT(freeinode_ts[inumber] == TAKEN,
                   "inode_delete: inode already freed");
 
@@ -390,6 +391,7 @@ int find_in_dir(inode_t const *inode, char const *sub_name) {
     // Iterates over the directory entries looking for one that has the target
     // name
     for (int i = 0; i < MAX_DIR_ENTRIES; i++){
+        //seccao critica
         if ((dir_entry[i].d_inumber != -1) &&
             (strncmp(dir_entry[i].d_name, sub_name, MAX_FILE_NAME) == 0)) {
 

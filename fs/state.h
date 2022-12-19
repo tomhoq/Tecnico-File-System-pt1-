@@ -24,11 +24,11 @@ typedef enum { T_FILE, T_DIRECTORY } inode_type;
  */
 typedef struct {
     inode_type i_node_type;
-    bool is_sym_link;
-    size_t i_size;
-    int i_data_block;
-    int hard_links;
-
+    bool is_sym_link;   
+    size_t i_size;  //seccao critica
+    int i_data_block; // seccao critica
+    int hard_links;   // seccao critica
+    //rw lock
     // in a more complete FS, more fields could exist here
 } inode_t;
 
@@ -47,7 +47,7 @@ int state_destroy(void);
 
 size_t state_block_size(void);
 
-int inode_create(inode_type n_type);
+int inode_create(inode_type n_type, bool is_sym);
 void inode_delete(int inumber);
 inode_t *inode_get(int inumber);
 
