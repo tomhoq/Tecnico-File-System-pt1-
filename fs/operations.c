@@ -96,9 +96,8 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
         pthread_mutex_unlock(&mutex_open_files);
         // The file already exists
         inode_t *inode = inode_get(inum);
-        printf("got inode\n");
         iLock_rdlock(inum);    //talvez precisa de ser mutex?
-        printf("locked\n");
+        
         while (inode->is_sym_link == true) {    //ciclo para chegar ao ficheiro pretendido através de sym_links.
             int prev_inum = inum;
             char* new = (char*) data_block_get(inode->i_data_block);
@@ -226,9 +225,8 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
     //  From the open file table entry, we get the inode
     inode_t *inode = inode_get(file->of_inumber);
     ALWAYS_ASSERT(inode != NULL, "tfs_write: inode of open file deleted");
-    printf("opened inode\n");
     iLock_rdlock(file->of_inumber);
-    printf("locked\n");
+    
 
     // Determine how many bytes to write
     size_t block_size = state_block_size();
@@ -308,11 +306,11 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
 int tfs_unlink(char const *target) {
 
     inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
-
     int inumber = find_in_dir(root_dir_inode, ++target, ROOT_DIR_INUM);
     inode_t *t_inode = inode_get(inumber);
+    if(getFhandle(inumber) != -1)
+        return -1; //makes sure file is closed
     iLock_wrlock(inumber);
-    
     t_inode->hard_links--;
     if (t_inode->is_sym_link) {
         if (clear_dir_entry(root_dir_inode, target, ROOT_DIR_INUM) != -1) {
@@ -327,11 +325,13 @@ int tfs_unlink(char const *target) {
         if (t_inode->hard_links == 0) {
             iLock_unlock(inumber);
             inode_delete(inumber);
+            iLock_rdlock(inumber);
         }
         if (clear_dir_entry(root_dir_inode, target, ROOT_DIR_INUM) == -1) {
             iLock_unlock(inumber);
             return -1;
         }
+        iLock_unlock(inumber);
         return 0;
 
     }
@@ -343,21 +343,19 @@ int tfs_copy_from_external_fs(char const *source_path, char const *dest_path) {
     //não sei se aqui é preciso alguma cena
     FILE *fp = fopen(source_path,"r");
     if (fp == NULL) {
-        printf("FINVALIDFILEHANDLdwadwadawdwadawE\n");
         return -1;
     }
 
     int fileHandle = tfs_open(dest_path, TFS_O_CREAT); //CREATES FILE IF DOESNT EXIST, if already exists offset = 0;
     
     if(fileHandle == -1)  {
-        printf("FINVALIDFILEHANDLE\n");
         return -1;  //failed to open or create new file
     }
 
     char buffer[state_block_size()];
     memset(buffer, 0, sizeof(buffer));  
-    size_t bRead = fread(buffer, sizeof(*buffer), sizeof(buffer) , fp);
-    buffer[bRead++] = "\0";
+    size_t bRead = fread(buffer, sizeof(*buffer), sizeof(buffer)-1 , fp);
+    buffer[bRead++] = '\0';
     bRead -= 1;
 
     if(tfs_write(fileHandle, buffer, strlen(buffer)) == -1)

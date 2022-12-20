@@ -422,6 +422,8 @@ int add_dir_entry(inode_t *inode, char const *sub_name, int sub_inumber, int inu
     return -1; // no space for entry
 }
 
+
+
 /**
  * Obtain the inumber for a sub file inside a directory.
  *
@@ -546,7 +548,9 @@ int add_to_open_file_table(int inumber, size_t offset) {
     for (int i = 0; i < MAX_OPEN_FILES; i++) {
         if (free_open_file_entries[i] == FREE) {
             free_open_file_entries[i] = TAKEN;
+            pthread_mutex_unlock(&open_file_mutex);
             pthread_mutex_lock(&open_file_table[i].lock);
+            pthread_mutex_lock(&open_file_mutex);
             open_file_table[i].of_inumber = inumber;
             open_file_table[i].of_offset = offset;
             pthread_mutex_unlock(&open_file_table[i].lock);
@@ -576,6 +580,27 @@ void remove_from_open_file_table(int fhandle) {
     pthread_mutex_unlock(&open_file_mutex);
 }
 
+int getFhandle(int inumber){
+    pthread_mutex_lock(&open_file_mutex);
+    for (int i = 0; i < MAX_OPEN_FILES; i++) {   
+        if (free_open_file_entries[i] == TAKEN){
+            pthread_mutex_lock(&open_file_table[i].lock);
+            if (open_file_table[i].of_inumber == inumber) {
+                pthread_mutex_unlock(&open_file_mutex);
+                pthread_mutex_unlock(&open_file_table[i].lock);
+                return i;
+            }
+            pthread_mutex_unlock(&open_file_table[i].lock);
+        }
+    }
+    pthread_mutex_unlock(&open_file_mutex);
+    return -1;
+}
+void print_open_file_table() {
+    for (int i = 0; i < MAX_OPEN_FILES; i++) {
+            printf("%d, %d\n",free_open_file_entries[i],open_file_table[i].of_inumber);
+    }
+}
 /**
  * Obtain pointer to a given entry in the open file table.
  *
@@ -586,7 +611,6 @@ void remove_from_open_file_table(int fhandle) {
  * opened.
  */
 open_file_entry_t *get_open_file_entry(int fhandle) {
-    printf("test\n");
     if (!valid_file_handle(fhandle)) {
         return NULL;
     }
