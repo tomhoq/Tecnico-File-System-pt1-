@@ -48,6 +48,7 @@ int main() {
     
     assert(tfs_init(NULL) != -1);
     write_contents(target_path1);
+    
 
     printf("FINISH.\n");
     

@@ -161,6 +161,15 @@ int state_init(tfs_params params) {
  * Returns 0 if succesful, -1 otherwise.
  */
 int state_destroy(void) {
+
+    pthread_rwlock_destroy(&free_blocks_lock);
+    pthread_mutex_destroy(&open_file_mutex);
+    for (size_t i = 0; i < MAX_OPEN_FILES; i++) {
+        pthread_mutex_destroy(&open_file_table[i].lock);
+    }
+    for (size_t i = 0; i < INODE_TABLE_SIZE; i++) {
+        pthread_rwlock_destroy(&iLock[i]);
+    }
     free(inode_table);
     free(freeinode_ts);
     free(fs_data);
@@ -168,11 +177,6 @@ int state_destroy(void) {
     free(open_file_table);
     free(free_open_file_entries);
     free(iLock);
-    pthread_rwlock_destroy(&free_blocks_lock);
-    pthread_mutex_destroy(&open_file_mutex);
-    for (size_t i = 0; i < MAX_OPEN_FILES; i++) {
-        pthread_mutex_destroy(&open_file_table[i].lock);
-    }
     inode_table = NULL;
     freeinode_ts = NULL;
     fs_data = NULL;
@@ -209,10 +213,14 @@ static int inode_alloc(void) {
             if (freeinode_ts[inumber] == FREE) {            // makes sure that the position wasn't stolen by another process
                 freeinode_ts[inumber] = TAKEN;
                 return (int)inumber;
+            } else{
+                pthread_rwlock_unlock(&freeinode_lock); //stops writing
+                pthread_rwlock_rdlock(&freeinode_lock); // rebegins reading
             }
         }
     }
-
+    pthread_rwlock_unlock(&freeinode_lock);        //Stops reading     
+    pthread_rwlock_wrlock(&freeinode_lock);         //Starts writing
     // no free inodes
     return -1;
 }

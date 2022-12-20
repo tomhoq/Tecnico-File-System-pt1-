@@ -13,11 +13,15 @@ char const target_path4[] = "/f4";
 char const link_path1[] = "/l1";
 
 void assert_contents_ok(char const *path) {
+    printf("try to open\n");
     int f = tfs_open(path, 0);
+    printf("opened!\n");
     assert(f != -1);
 
     uint8_t buffer[sizeof(file_contents)];
     assert(tfs_read(f, buffer, sizeof(buffer)) == sizeof(buffer));
+        printf("read!\n");
+
     assert(memcmp(buffer, file_contents, sizeof(buffer)) == 0);
 
     assert(tfs_close(f) != -1);
@@ -25,10 +29,12 @@ void assert_contents_ok(char const *path) {
 
 void write_contents(char const *path) {
     int f = tfs_open(path, 0);
+    printf("opened f\n");
     assert(f != -1);
 
     assert(tfs_write(f, file_contents, sizeof(file_contents)) ==
            sizeof(file_contents));
+    printf("wrote on f f\n");
 
     assert(tfs_close(f) != -1);
 }
@@ -62,10 +68,8 @@ int main() {
                     // reached
         assert(tfs_close(f2) != -1);
     }
-
     // unlink file
     assert(tfs_unlink(target_path1) != -1);
-
     // create file with content
     {
         int f3 = tfs_open(target_path3, TFS_O_CREAT);
@@ -78,16 +82,19 @@ int main() {
 
     // unlink file
     assert(tfs_unlink(link_path1) != -1);
-
     // create file with content
     {
         int f4 = tfs_open(target_path4, TFS_O_CREAT);
+        printf("3\n");
         assert(f4 != -1);
         assert(tfs_close(f4) != -1);
-        write_contents(target_path4);
+        printf("4\n");
+        write_contents(target_path4); //ERRORR!!!!!!!!!!!!!
+        printf("5\n");
         assert_contents_ok(target_path4); // sanity check
+        printf("6\n");
     }
-
+    printf("10\n");
     // destroy TécnicoFS
     assert(tfs_destroy() != -1);
 

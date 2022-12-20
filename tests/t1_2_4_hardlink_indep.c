@@ -126,6 +126,7 @@ int main() {
                 assert(_link(rep, i - 1, rep, i) != -1);
             }
         }
+
         run_test(rep);
     }
 
