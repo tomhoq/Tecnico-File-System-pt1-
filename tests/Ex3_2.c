@@ -6,8 +6,10 @@
 #include <unistd.h>
 
 char *path_copied_file = "/f1";
-char *path_thread1 = "tests/_thread1.txt";
-char *exp_output = "Thread 1";
+char *path_thread1 = "tests/input1.txt";
+char *path_thread2 = "tests/input2.txt";
+char *path_thread3 = "tests/input3.txt";
+char *exp_output = "INPUT 1";
 char buffer[50];
 
 void *thread1() {

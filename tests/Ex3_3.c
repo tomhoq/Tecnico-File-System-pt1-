@@ -45,7 +45,6 @@ void *f1(){
         assert(tfs_unlink(new_path1) != -1);
     }
 
-    printf("Successful test1.\n");
     return NULL;
 }
 void *f2(){
@@ -67,7 +66,6 @@ void *f2(){
         assert(tfs_unlink(link_path1) == -1);
     }
 
-    printf("Successful test2.\n");
     return NULL;
 }
 int main() {
@@ -84,7 +82,7 @@ int main() {
         pthread_join(pid[i],NULL);
     }
 
-    printf("FINISH.\n");
+    printf("Successful test.\n");
     
     return 0;
 }

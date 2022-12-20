@@ -40,12 +40,8 @@ int main() {
     int f = tfs_open(target_path1, TFS_O_CREAT);
     assert(f != -1);
     assert(tfs_link(target_path1, link_path1) != -1);
-    //assert(tfs_link(target_path1, link_path1) == -1);
-    assert(tfs_sym_link(link_path1, link_path2) != 1);
-    assert(tfs_sym_link(link_path1, link_path2) == 1);
-    write_contents(target_path1);
-    assert_contents_ok(link_path2);
-    assert(tfs_link(link_path2, new_path1) == -1);
+    assert(tfs_link(target_path1, link_path1) == -1);
+    assert(tfs_close(f) != -1);
     assert(tfs_unlink(link_path1) != -1);
     assert(tfs_unlink(target_path1) != -1);  
 

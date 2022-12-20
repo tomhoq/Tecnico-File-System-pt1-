@@ -30,7 +30,7 @@ int tfs_init(tfs_params const *params_ptr) {
         params = tfs_default_params(); //if given no values makes values of tfs default
     }
 
-    if (state_init(params) != 0) {     // initializes tables, returns 0 if successful
+    if (state_init(params) != 0) { // initializes tables, returns 0 if successful
         return -1;
     }
 
@@ -306,17 +306,17 @@ int tfs_unlink(char const *target) {
     int inumber = find_in_dir(root_dir_inode, ++target, ROOT_DIR_INUM);
 
     if (inumber < 0) {
-        //printf("tfs_unlink:\"%s\" - invalid target name.\n", target);
         return -1;
     }
 
-    inode_t *t_inode = inode_get(inumber);
     if(getFhandle(inumber) != -1)
         return -1; //makes sure file is closed
+
+    inode_t *t_inode = inode_get(inumber);
+    
     iLock_wrlock(inumber);
     t_inode->hard_links--;
     if (t_inode->is_sym_link) {
-        printf("YEYU\n");
         if (clear_dir_entry(root_dir_inode, target, ROOT_DIR_INUM) == -1) {
             iLock_unlock(inumber);
             return -1;
@@ -326,7 +326,6 @@ int tfs_unlink(char const *target) {
         return 0;
 
     } else {
-        printf("YEYU\n");
         if (t_inode->hard_links == 0) {
             iLock_unlock(inumber);
             inode_delete(inumber);
