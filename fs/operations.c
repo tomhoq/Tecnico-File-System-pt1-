@@ -188,10 +188,7 @@ int tfs_sym_link(char const *target, char const *link_name) {
 int tfs_link(char const *target, char const *link_name) {
     inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
 
-    //pthread_mutex_lock(dir_entry_table). Bloquear dir_entry table????
     int target_inumber = tfs_lookup(target, root_dir_inode);
-    //pthread_mutex_lock(target_inumber). Terá isto alguma utilidade?
-
     if (tfs_lookup(link_name, root_dir_inode) != -1 || inode_get(target_inumber)->is_sym_link == true) { 
         return -1;  //Já existe um link com este nome / não é possível criar hard_links para sym_links
     }
@@ -307,13 +304,20 @@ int tfs_unlink(char const *target) {
 
     inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
     int inumber = find_in_dir(root_dir_inode, ++target, ROOT_DIR_INUM);
+
+    if (inumber < 0) {
+        //printf("tfs_unlink:\"%s\" - invalid target name.\n", target);
+        return -1;
+    }
+
     inode_t *t_inode = inode_get(inumber);
     if(getFhandle(inumber) != -1)
         return -1; //makes sure file is closed
     iLock_wrlock(inumber);
     t_inode->hard_links--;
     if (t_inode->is_sym_link) {
-        if (clear_dir_entry(root_dir_inode, target, ROOT_DIR_INUM) != -1) {
+        printf("YEYU\n");
+        if (clear_dir_entry(root_dir_inode, target, ROOT_DIR_INUM) == -1) {
             iLock_unlock(inumber);
             return -1;
         }
@@ -322,6 +326,7 @@ int tfs_unlink(char const *target) {
         return 0;
 
     } else {
+        printf("YEYU\n");
         if (t_inode->hard_links == 0) {
             iLock_unlock(inumber);
             inode_delete(inumber);

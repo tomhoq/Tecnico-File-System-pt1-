@@ -42,6 +42,7 @@ void *f1(){
         assert(tfs_unlink(target_path1) == -1);
         assert(tfs_close(f) != -1);
         assert(tfs_unlink(target_path1) != -1);
+        assert(tfs_unlink(new_path1) != -1);
     }
 
     printf("Successful test1.\n");
@@ -54,12 +55,16 @@ void *f2(){
         write_contents(target_path1);
         assert(tfs_link(target_path1, new_path1) != -1);
         assert(tfs_link(new_path1, new_path1) == -1);
-        assert(tfs_sym_link(new_path1, link_path1) != -1);
+        assert_contents_ok(new_path1);
+        assert(tfs_sym_link(target_path1, link_path1) != -1);
         assert(tfs_link(link_path1, link_path2) == -1);
         assert(tfs_unlink(target_path1) == -1);
+        assert_contents_ok(link_path1);
         assert(tfs_close(f) != -1);
+        assert(tfs_unlink(link_path1) != -1);
         assert(tfs_unlink(target_path1) != -1);
         assert(tfs_unlink(new_path1) != -1);
+        assert(tfs_unlink(link_path1) == -1);
     }
 
     printf("Successful test2.\n");
@@ -72,9 +77,7 @@ int main() {
 
     for (int i = 0; i < 3; i++) {
         pthread_create(&pid[i],NULL,(void *)f1,NULL);
-    }
-    for (int i = 3; i < 6; i++) {
-        pthread_create(&pid[i],NULL,(void *)f2,NULL);
+        pthread_create(&pid[5-i],NULL,(void *)f2,NULL);
     }
     
     for (int i = 0; i < 6; i++) {
