@@ -133,19 +133,17 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
     } else if (mode & TFS_O_CREAT) {
         // The file does not exist; the mode specified that it should be created
         // Create inode
+        pthread_mutex_unlock(&mutex_open_files);
         inum = inode_create(T_FILE, false);
         if (inum == -1) {
-            pthread_mutex_unlock(&mutex_open_files);
             return -1; // no space in inode table
         }
 
         // Add entry in the root directory
         if (add_dir_entry(root_dir_inode, name + 1, inum, ROOT_DIR_INUM) == -1) {
-            pthread_mutex_unlock(&mutex_open_files);
             inode_delete(inum);
             return -1; // no space in directory
         }
-        pthread_mutex_unlock(&mutex_open_files);
         offset = 0;
     } else {
         pthread_mutex_unlock(&mutex_open_files);
@@ -214,7 +212,7 @@ int tfs_close(int fhandle) {
     if (file == NULL) {
         return -1; // invalid fd
     }
-
+    
     remove_from_open_file_table(fhandle);
     return 0;
 }
@@ -358,8 +356,8 @@ int tfs_copy_from_external_fs(char const *source_path, char const *dest_path) {
 
     char buffer[state_block_size()];
     memset(buffer, 0, sizeof(buffer));  
-    size_t bRead = fread(buffer, sizeof(*buffer), sizeof(buffer), fp);
-
+    size_t bRead = fread(buffer, sizeof(*buffer), sizeof(buffer) , fp);
+    buffer[bRead++] = "\0";
     bRead -= 1;
 
     if(tfs_write(fileHandle, buffer, strlen(buffer)) == -1)

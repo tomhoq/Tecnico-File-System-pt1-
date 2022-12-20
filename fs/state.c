@@ -586,10 +586,11 @@ void remove_from_open_file_table(int fhandle) {
  * opened.
  */
 open_file_entry_t *get_open_file_entry(int fhandle) {
+    printf("test\n");
     if (!valid_file_handle(fhandle)) {
         return NULL;
     }
-
+    
     if (free_open_file_entries[fhandle] != TAKEN) {
         return NULL;
     }
