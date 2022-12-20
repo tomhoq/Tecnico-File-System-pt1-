@@ -16,7 +16,6 @@ int main() {
     ssize_t r;
 
     f = tfs_copy_from_external_fs(path_src, path_copied_file);
-    fprintf(stderr, "f: %d\n", f); 
     assert(f != -1); //F tem q ser diferente de -1, senao da erro
 
     f = tfs_open(path_copied_file, TFS_O_CREAT);
