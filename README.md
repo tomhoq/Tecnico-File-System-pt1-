@@ -1,3 +1,5 @@
-# tfs_project
+#Tecnico File System
 
-The purpose of this repo is to program and create a functioning file system
+Project to the discipline of Operating Systems.
+
+Simulation of a filesystem developed from scratch, providing functions to add new files, change them, destroy them, create copies (both hard and soft) and more.
